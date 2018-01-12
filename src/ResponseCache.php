@@ -65,9 +65,64 @@ class ResponseCache
     }
 
     public function getCachedResponseFor(Request $request): Response
-    {
-        return $this->cache->get($this->hasher->getHashFor($request));
-    }
+	{
+
+		$response = $this->cache->get($this->hasher->getHashFor($request));
+		
+		$cachedContent = $response->getContent();
+		$newContent = $this->updateCsrfToken($cachedContent);
+		$response->setContent($newContent);
+
+		return $response;
+	}
+
+	public function updateCsrfToken($responseContent)
+	{
+
+		$findToken   = 'name="_token"';
+		$posToken = strpos($responseContent, $findToken);
+
+		if ($posToken !== false) {
+
+			$offsetToken = $posToken + strlen($findToken);
+
+			$findValue = 'value="';
+			$posValue = strpos($responseContent, $findValue, $offsetToken);
+
+			if ($posValue !== false) {
+				$offsetValue = $posValue + strlen($findValue);
+
+				$findQuotes = '"';
+				$posQuotes = strpos($responseContent, $findQuotes, $offsetValue);
+
+				if ($posQuotes !== false) {
+
+					$offsetQuotes = $posQuotes + strlen($findQuotes);
+					$oldCsrf = substr($responseContent, $offsetValue, $offsetQuotes - $offsetValue);
+					$newCsrf = Session::token();
+					$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
+
+				} else {
+
+					return $responseContent;
+
+				}
+
+			} else {
+
+				return $responseContent;
+
+			}
+
+		} else {
+
+			return $responseContent;
+			
+		}
+
+		return $newContent;
+
+	}
 
     public function flush()
     {
