@@ -104,7 +104,7 @@ class ResponseCache
 					$tokenFound = true;
 
 					$offsetInputQuotes = $posInputQuotes + strlen($findInputQuotes);
-					$oldCsrf = substr($responseContent, $offsetInputValue, $offsetInputQuotes - $offsetInputValue);
+					$oldCsrf = substr($responseContent, $offsetInputValue, $offsetInputQuotes - $offsetInputValue - 1);
 
 					$newCsrf = Session::token();
 					$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
@@ -138,7 +138,7 @@ class ResponseCache
 						$tokenFound = true;
 
 						$offsetMetaQuotes = $posMetaQuotes + strlen($findMetaQuotes);
-						$oldCsrf = substr($responseContent, $offsetMetaToken, $offsetMetaQuotes - $offsetMetaToken);
+						$oldCsrf = substr($responseContent, $offsetMetaToken, $offsetMetaQuotes - $offsetMetaToken - 1);
 						$newCsrf = Session::token();
 						$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
 
