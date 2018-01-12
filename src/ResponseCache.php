@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Spatie\ResponseCache\CacheProfiles\CacheProfile;
 
+use Illuminate\Support\Facades\Session;
+
 class ResponseCache
 {
     /** @var ResponseCache */
@@ -78,49 +80,78 @@ class ResponseCache
 
 	public function updateCsrfToken($responseContent)
 	{
+		$tokenFound = false;
 
-		$findToken   = 'name="_token"';
-		$posToken = strpos($responseContent, $findToken);
+		// try to find input field
+		$findInputToken   = 'name="_token"';
+		$posInputToken = strpos($responseContent, $findInputToken);
 
-		if ($posToken !== false) {
+		if ($posInputToken !== false) {
 
-			$offsetToken = $posToken + strlen($findToken);
+			$offsetInputToken = $posInputToken + strlen($findInputToken);
 
-			$findValue = 'value="';
-			$posValue = strpos($responseContent, $findValue, $offsetToken);
+			$findInputValue = 'value="';
+			$posInputValue = strpos($responseContent, $findInputValue, $offsetInputToken);
 
-			if ($posValue !== false) {
-				$offsetValue = $posValue + strlen($findValue);
+			if ($posInputValue !== false) {
+				$offsetInputValue = $posInputValue + strlen($findInputValue);
 
-				$findQuotes = '"';
-				$posQuotes = strpos($responseContent, $findQuotes, $offsetValue);
+				$findInputQuotes = '"';
+				$posInputQuotes = strpos($responseContent, $findInputQuotes, $offsetInputValue);
 
-				if ($posQuotes !== false) {
+				if ($posInputQuotes !== false) {
 
-					$offsetQuotes = $posQuotes + strlen($findQuotes);
-					$oldCsrf = substr($responseContent, $offsetValue, $offsetQuotes - $offsetValue);
+					$tokenFound = true;
+
+					$offsetInputQuotes = $posInputQuotes + strlen($findInputQuotes);
+					$oldCsrf = substr($responseContent, $offsetInputValue, $offsetInputQuotes - $offsetInputValue);
+
 					$newCsrf = Session::token();
 					$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
 
-				} else {
-
-					return $responseContent;
-
 				}
-
-			} else {
-
-				return $responseContent;
-
 			}
 
-		} else {
-
-			return $responseContent;
-			
 		}
 
-		return $newContent;
+		if($tokenFound === false) {
+
+			// find meta field
+			$findMetaName   = 'name="csrf-token"';
+			$posMetaName = strpos($responseContent, $findMetaName);
+
+			if ($posMetaName !== false) {
+
+				$offsetMetaName = $posMetaName + strlen($findMetaName);
+
+				$findMetaToken = 'content="';
+				$posMetaToken = strpos($responseContent, $findMetaToken, $offsetMetaName);
+
+				if ($posMetaToken !== false) {
+					$offsetMetaToken = $posMetaToken + strlen($findMetaToken);
+
+					$findMetaQuotes = '"';
+					$posMetaQuotes = strpos($responseContent, $findMetaQuotes, $offsetMetaToken);
+
+					if ($posMetaQuotes !== false) {
+
+						$tokenFound = true;
+
+						$offsetMetaQuotes = $posMetaQuotes + strlen($findMetaQuotes);
+						$oldCsrf = substr($responseContent, $offsetMetaToken, $offsetMetaQuotes - $offsetMetaToken);
+						$newCsrf = Session::token();
+						$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
+
+					}
+				}
+			}
+		}
+
+		if($tokenFound === true) {
+			return $newContent;
+		} else {
+			return $responseContent;
+		}
 
 	}
 
