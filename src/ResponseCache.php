@@ -88,60 +88,89 @@ class ResponseCache
 
 		if ($posInputToken !== false) {
 
-			$offsetInputToken = $posInputToken + strlen($findInputToken);
+			$inputPartial = substr($responseContent, 0, $posInputToken);
 
-			$findInputValue = 'value="';
-			$posInputValue = strpos($responseContent, $findInputValue, $offsetInputToken);
+			// go back and find tag start
+			$findInputTag   = '<input';
+			$posInputTag = strrpos($inputPartial, $findInputTag);
 
-			if ($posInputValue !== false) {
-				$offsetInputValue = $posInputValue + strlen($findInputValue);
+			if ($posInputTag !== false) {
 
-				$findInputQuotes = '"';
-				$posInputQuotes = strpos($responseContent, $findInputQuotes, $offsetInputValue);
+				$offsetInputTag = $posInputTag + strlen($findInputTag);
 
-				if ($posInputQuotes !== false) {
+				// find tag value start
+				$findInputValue = 'value="';
+				$posInputValue = strpos($responseContent, $findInputValue, $offsetInputTag);
 
-					$tokenFound = true;
+				if ($posInputValue !== false) {
+					$offsetInputValue = $posInputValue + strlen($findInputValue);
 
-					$offsetInputQuotes = $posInputQuotes + strlen($findInputQuotes);
-					$oldCsrf = substr($responseContent, $offsetInputValue, $offsetInputQuotes - $offsetInputValue - 1);
+					// find tag value end
+					$findInputQuotes = '"';
+					$posInputQuotes = strpos($responseContent, $findInputQuotes, $offsetInputValue);
 
-					$newCsrf = Session::token();
-					$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
+					if ($posInputQuotes !== false) {
 
+						$tokenFound = true;
+
+						$offsetInputQuotes = $posInputQuotes + strlen($findInputQuotes);
+						$oldCsrf = substr($responseContent, $offsetInputValue, $offsetInputQuotes - $offsetInputValue - 1);
+
+						// get session token
+						$newCsrf = Session::token();
+
+						// replace token
+						$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
+
+					}
 				}
 			}
-
 		}
 
 		if($tokenFound === false) {
 
-			// find meta field
+			// try to find meta field
 			$findMetaName   = 'name="csrf-token"';
 			$posMetaName = strpos($responseContent, $findMetaName);
 
 			if ($posMetaName !== false) {
 
-				$offsetMetaName = $posMetaName + strlen($findMetaName);
+				$metaPartial = substr($responseContent, 0, $posMetaName);
 
-				$findMetaToken = 'content="';
-				$posMetaToken = strpos($responseContent, $findMetaToken, $offsetMetaName);
+				// go back and find tag start
+				$findMetaTag   = '<meta';
+				$posMetaTag = strrpos($metaPartial, $findMetaTag);
 
-				if ($posMetaToken !== false) {
-					$offsetMetaToken = $posMetaToken + strlen($findMetaToken);
+				if ($posMetaTag !== false) {
 
-					$findMetaQuotes = '"';
-					$posMetaQuotes = strpos($responseContent, $findMetaQuotes, $offsetMetaToken);
+					$offsetMetaTag = $posMetaTag + strlen($findMetaTag);
 
-					if ($posMetaQuotes !== false) {
+					// find tag content start
+					$findMetaToken = 'content="';
+					$posMetaToken = strpos($responseContent, $findMetaToken, $offsetMetaTag);
 
-						$tokenFound = true;
+					if ($posMetaToken !== false) {
 
-						$offsetMetaQuotes = $posMetaQuotes + strlen($findMetaQuotes);
-						$oldCsrf = substr($responseContent, $offsetMetaToken, $offsetMetaQuotes - $offsetMetaToken - 1);
-						$newCsrf = Session::token();
-						$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
+						$offsetMetaToken = $posMetaToken + strlen($findMetaToken);
 
+						// find tag content end
+						$findMetaQuotes = '"';
+						$posMetaQuotes = strpos($responseContent, $findMetaQuotes, $offsetMetaToken);
+
+						if ($posMetaQuotes !== false) {
+
+							$tokenFound = true;
+
+							$offsetMetaQuotes = $posMetaQuotes + strlen($findMetaQuotes);
+							$oldCsrf = substr($responseContent, $offsetMetaToken, $offsetMetaQuotes - $offsetMetaToken - 1);
+
+							// get session token
+							$newCsrf = Session::token();
+
+							// replace token
+							$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
+
+						}
 					}
 				}
 			}
