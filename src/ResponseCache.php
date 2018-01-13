@@ -70,10 +70,12 @@ class ResponseCache
 	{
 
 		$response = $this->cache->get($this->hasher->getHashFor($request));
-		
-		$cachedContent = $response->getContent();
-		$newContent = $this->updateCsrfToken($cachedContent);
-		$response->setContent($newContent);
+
+		if (config('responsecache.replace_csrf')) {
+			$cachedContent = $response->getContent();
+			$newContent = $this->updateCsrfToken($cachedContent);
+			$response->setContent($newContent);
+		}
 
 		return $response;
 	}
