@@ -43,4 +43,10 @@ return [
      * You may use a string are an array here.
      */
     'cache_tag' => '',
+    
+    /*
+     * This setting determines if CSRF tokens should be replaced.
+     */
+    'replace_csrf' => true,
+    
 ];
