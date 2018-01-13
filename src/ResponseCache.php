@@ -80,108 +80,77 @@ class ResponseCache
 
 	public function updateCsrfToken($responseContent)
 	{
-		$tokenFound = false;
-
 		// try to find input field
-		$findInputToken   = 'name="_token"';
-		$posInputToken = strpos($responseContent, $findInputToken);
+		$content = $this->findAttributeInTag($responseContent, 'input', 'name="_token"', 'value');
+		if($content) {
+			return $content;
+		} else {
+			// try to find meta field
+			$content = $this->findAttributeInTag($responseContent, 'meta', 'name="csrf-token"', 'content');
+			if($content) {
+				return $content;
+			} else {
+				return $responseContent;
+			}
+		}
+	}
 
-		if ($posInputToken !== false) {
+	public function findAttributeInTag($content, $tag, $key, $attribute)
+	{
 
-			$inputPartial = substr($responseContent, 0, $posInputToken);
+		// try to find key
+		$posKey = strpos($content, $key);
+
+		if ($posKey !== false) {
+
+			$partial = substr($content, 0, $posKey);
 
 			// go back and find tag start
-			$findInputTag   = '<input';
-			$posInputTag = strrpos($inputPartial, $findInputTag);
+			$tagStart = '<'.$tag;
+			$posTagStart = strrpos($partial, $tagStart);
 
-			if ($posInputTag !== false) {
+			if ($posTagStart !== false) {
 
-				$offsetInputTag = $posInputTag + strlen($findInputTag);
+				$offsetTag = $posTagStart + strlen($tagStart);
 
-				// find tag value start
-				$findInputValue = 'value="';
-				$posInputValue = strpos($responseContent, $findInputValue, $offsetInputTag);
+				// find attribute start
+				$attributeStart = $attribute . '="';
+				$posAttStart = strpos($content, $attributeStart, $offsetTag);
 
-				if ($posInputValue !== false) {
-					$offsetInputValue = $posInputValue + strlen($findInputValue);
+				if ($posAttStart !== false) {
 
-					// find tag value end
-					$findInputQuotes = '"';
-					$posInputQuotes = strpos($responseContent, $findInputQuotes, $offsetInputValue);
+					$offsetAttStart = $posAttStart + strlen($attributeStart);
 
-					if ($posInputQuotes !== false) {
+					// find attribute end
+					$attributeEnd = '"';
+					$posAttEnd = strpos($content, $attributeEnd, $offsetAttStart);
 
-						$tokenFound = true;
+					if ($posAttEnd !== false) {
 
-						$offsetInputQuotes = $posInputQuotes + strlen($findInputQuotes);
-						$oldCsrf = substr($responseContent, $offsetInputValue, $offsetInputQuotes - $offsetInputValue - 1);
+						$offsetAttEnd = $posAttEnd + strlen($attributeEnd);
+
+						$oldCsrf = substr($content, $offsetAttStart, $offsetAttEnd - $offsetAttStart - 1);
 
 						// get session token
 						$newCsrf = Session::token();
 
 						// replace token
-						$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
+						$newContent = str_replace($oldCsrf, $newCsrf, $content);
 
+						return $newContent;
+
+					} else {
+						return false;
 					}
+				} else {
+					return false;
 				}
+			} else {
+				return false;
 			}
-		}
-
-		if($tokenFound === false) {
-
-			// try to find meta field
-			$findMetaName   = 'name="csrf-token"';
-			$posMetaName = strpos($responseContent, $findMetaName);
-
-			if ($posMetaName !== false) {
-
-				$metaPartial = substr($responseContent, 0, $posMetaName);
-
-				// go back and find tag start
-				$findMetaTag   = '<meta';
-				$posMetaTag = strrpos($metaPartial, $findMetaTag);
-
-				if ($posMetaTag !== false) {
-
-					$offsetMetaTag = $posMetaTag + strlen($findMetaTag);
-
-					// find tag content start
-					$findMetaToken = 'content="';
-					$posMetaToken = strpos($responseContent, $findMetaToken, $offsetMetaTag);
-
-					if ($posMetaToken !== false) {
-
-						$offsetMetaToken = $posMetaToken + strlen($findMetaToken);
-
-						// find tag content end
-						$findMetaQuotes = '"';
-						$posMetaQuotes = strpos($responseContent, $findMetaQuotes, $offsetMetaToken);
-
-						if ($posMetaQuotes !== false) {
-
-							$tokenFound = true;
-
-							$offsetMetaQuotes = $posMetaQuotes + strlen($findMetaQuotes);
-							$oldCsrf = substr($responseContent, $offsetMetaToken, $offsetMetaQuotes - $offsetMetaToken - 1);
-
-							// get session token
-							$newCsrf = Session::token();
-
-							// replace token
-							$newContent = str_replace($oldCsrf, $newCsrf, $responseContent);
-
-						}
-					}
-				}
-			}
-		}
-
-		if($tokenFound === true) {
-			return $newContent;
 		} else {
-			return $responseContent;
+			return false;
 		}
-
 	}
 
     public function flush()
